@@ -1,7 +1,9 @@
 FROM maven:3.6-jdk-8-alpine AS builder
 
 RUN apk add --update --no-cache git
-
+# SLOW_ENVIRONMENT is useful for docker hub builds to improve wiremock compatiblity
+ARG slow_env=true
+ENV SLOW_ENVIRONMENT=$slow_env
 WORKDIR /app
 COPY pom.xml .
 RUN mvn -e -B dependency:resolve

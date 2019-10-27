@@ -21,7 +21,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class FunctionalTest {
 
 
@@ -30,6 +29,9 @@ public abstract class FunctionalTest {
     public abstract Boolean expectSuccessfulResult(Req req);
 
     private static MiniGitServer server;
+
+    //useful for docker hub builds to improve wiremock compatiblity
+    private boolean slowEnvironment = ("true".equals(System.getenv("SLOW_ENVIRONMENT")));
 
     enum Req {
         WithoutBasicAuth_WithoutExternalAuth("http://localhost:8080","http://localhost:8080",null),
@@ -61,7 +63,7 @@ public abstract class FunctionalTest {
 
     WireMockServer wireMockServer;
 
-    @BeforeAll
+    @BeforeEach
     public void setup() throws Exception {
         //prepare mini-git-server
         server = new MiniGitServer(getConfig());
@@ -71,18 +73,16 @@ public abstract class FunctionalTest {
         wireMockServer.start();
         configureFor("localhost", 8081);
 
-        verify(exactly(0), getRequestedFor(urlEqualTo("/webhook/project1?master")));
+        if (slowEnvironment) {
+            System.err.println("SLOW ENVIRONMENT DETECTED");
+            Thread.sleep(1000);
+        }
     }
 
-    @AfterAll
+    @AfterEach
     public void teardown() throws Exception {
         wireMockServer.stop();
         server.stop();
-    }
-
-    @BeforeEach
-    public void clear() throws InterruptedException {
-        resetAllRequests();
     }
 
     @Test
@@ -159,7 +159,11 @@ public abstract class FunctionalTest {
         execute("git remote set-url origin "+req.getGitUrl()+"/git/project1.git", projectPath, true);
         execute("git -c credential.helper= push", projectPath, shouldSucceed);
 
-        Thread.sleep(100);
+        if (slowEnvironment) {
+            Thread.sleep(1000);
+        } else {
+            Thread.sleep(100);
+        }
         verify(exactly(shouldSucceed?1:0), getRequestedFor(urlEqualTo("/webhook/project1?master")));
     }
 
