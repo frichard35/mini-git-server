@@ -15,6 +15,6 @@ RUN mkdir /app/config && mkdir /app/repos
 ENTRYPOINT ["java","-Xmx32m","-Djava.security.egd=file:/dev/./urandom","-jar","/app/mini-git-server.jar"]
 WORKDIR /app
 VOLUME /tmp
-VOLUME /config
-VOLUME /repos
+VOLUME /app/config
+VOLUME /app/repos
 EXPOSE 8080
